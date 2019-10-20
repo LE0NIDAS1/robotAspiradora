@@ -28,15 +28,15 @@
     <eraseonlaunchrule>0</eraseonlaunchrule>
     <AsfFrameworkConfig>
       <framework-data>
-  <options />
-  <configurations />
-  <files />
-  <documentation help="" />
-  <offline-documentation help="" />
-  <dependencies>
-    <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.34.1" />
-  </dependencies>
-</framework-data>
+        <options />
+        <configurations />
+        <files />
+        <documentation help="" />
+        <offline-documentation help="" />
+        <dependencies>
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.34.1" />
+        </dependencies>
+      </framework-data>
     </AsfFrameworkConfig>
     <ResetRule>0</ResetRule>
     <EraseKey />
@@ -136,6 +136,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="FreeRTOSVariant.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="hcsr04.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="hcsr04.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="heap_2.c">

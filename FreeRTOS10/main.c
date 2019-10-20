@@ -19,6 +19,7 @@
 
 #include "usart.c"
 #include "I2C.c"
+#include "hcsr04.h"
 
 
 /*
@@ -128,7 +129,7 @@ tasks just use the idle priority. */
 static void mytask1( void *pvParameters );
 static void mytask2( void *pvParameters );
 static void mytask3( void *pvParameters );
-//static void mytask4( void *pvParameters );
+static void mytask4( void *pvParameters );
 
 //static xMutex = xSemaphoreCreateMutex();
 
@@ -147,22 +148,24 @@ static void mytask3( void *pvParameters );
 /*-----------------------------------------------------------*/
 //xMutex = xSemaphoreCreateRecursiveMutex();
 
-SemaphoreHandle_t xSerialSemaphore;
+//SemaphoreHandle_t xSerialSemaphore;
 
 
 static long int gz = 0;
+unsigned char sm;
 
 portSHORT main( void )
 {
 	
-	if ( xSerialSemaphore == NULL )  // Check to confirm that the Serial Semaphore has not already been created.
-	{
-		xSerialSemaphore = xSemaphoreCreateMutex();  // Create a mutex semaphore we will use to manage the Serial Port
-		if ( ( xSerialSemaphore ) != NULL )
-		xSemaphoreGive( ( xSerialSemaphore ) );  // Make the Serial Port available for use, by "Giving" the Semaphore.
-	}
+// 	if ( xSerialSemaphore == NULL )  // Check to confirm that the Serial Semaphore has not already been created.
+// 	{
+// 		xSerialSemaphore = xSemaphoreCreateMutex();  // Create a mutex semaphore we will use to manage the Serial Port
+// 		if ( ( xSerialSemaphore ) != NULL )
+// 		xSemaphoreGive( ( xSerialSemaphore ) );  // Make the Serial Port available for use, by "Giving" the Semaphore.
+// 	}
 	
 	//DDRB = (1<<PORTB5) | (1<<PORTB6);   //PINB5 y 6 salidas
+	Port_Init();
 	USART_init();
 	startI2c();
 	
@@ -174,10 +177,10 @@ portSHORT main( void )
 	/* Create the tasks defined within this file. */
 	xTaskCreate( mytask1, ( const portCHAR * ) "Task1", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
 	xTaskCreate( mytask2, ( const portCHAR * ) "Task2", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
-	//xTaskCreate( mytask3, ( const portCHAR * ) "Task3", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
-	//xTaskCreate( mytask4, ( signed portCHAR * ) "Task4", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
-
-
+	xTaskCreate( mytask3, ( const portCHAR * ) "Task3", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
+	xTaskCreate( mytask4, ( const portCHAR * ) "Task4", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY + 1 , NULL );
+	
+	sei();
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION 
 	as 1 in portmacro.h.  To use the cooperative scheduler define 
 	configUSE_PREEMPTION as 0. */
@@ -287,28 +290,29 @@ static void mytask3( void *pvParameters )
 {
 	for( ;; )
 	{
-	    //PORTB =  PORTB & ~(1 << PORTB5);
-		//PORTB = PORTB | (1 << PORTB5);
-	    //vTaskDelay(blinkTime7000);
-		//PORTB = 0b00011000; //atras derecha
-		//PORTD = 0b01100000;
-		//_delay_ms(800);
-		
+	   sm = hc_sr04_meas();
+	   char str2[10];
+	   itoa(sm, str2, 10);
+	   USART_putstring(str2);
+	   USART_putstring("\n");
+	   vTaskDelay(blinkTime300);		
 	}
 }
 
 
-// static void mytask4( void *pvParameters ) 
-// {
-// 	for( ;; )
-// 	{
-// 	    /*PORTB =  PORTB & ~(1<<PORTB6);
-// 	    vTaskDelay(blinkTime100);
-// 		PORTB = PORTB | (1<<PORTB6);
-// 	    vTaskDelay(blinkTime100);*/
-// 		
-// 	}
-// }
+static void mytask4( void *pvParameters ) 
+{
+	for( ;; )
+	{
+	    if(sm < 10 ){
+			PORTB = 0b00011000; //atras derecha
+			PORTD = 0b01100000; //adelante izquierda
+			_delay_ms(900);
+			gz = 0;
+		}
+		vTaskDelay(blinkTime300);		
+	}
+}
 
 
 /*-----------------------------------------------------------*/

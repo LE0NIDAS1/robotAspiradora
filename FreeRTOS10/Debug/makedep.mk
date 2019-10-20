@@ -4,6 +4,8 @@
 
 event_groups.c
 
+hcsr04.c
+
 heap_2.c
 
 hooks.c
