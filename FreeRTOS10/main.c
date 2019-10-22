@@ -119,8 +119,10 @@ tasks just use the idle priority. */
 
 /* The period between executions of the check task. */
 #define blinkTime1			( ( TickType_t ) 1 / portTICK_PERIOD_MS )
+#define blinkTime3			( ( TickType_t ) 3 / portTICK_PERIOD_MS )
 #define blinkTime5			( ( TickType_t ) 5 / portTICK_PERIOD_MS )
 #define blinkTime100			( ( TickType_t ) 100 / portTICK_PERIOD_MS )
+#define blinkTime200			( ( TickType_t ) 200 / portTICK_PERIOD_MS )
 #define blinkTime300			( ( TickType_t ) 300 / portTICK_PERIOD_MS )
 #define blinkTime1000			( ( TickType_t ) 1000 / portTICK_PERIOD_MS )
 #define blinkTime7000			( ( TickType_t ) 7000 / portTICK_PERIOD_MS )
@@ -128,7 +130,7 @@ tasks just use the idle priority. */
 
 static void mytask1( void *pvParameters );
 static void mytask2( void *pvParameters );
-static void mytask3( void *pvParameters );
+//static void mytask3( void *pvParameters );
 static void mytask4( void *pvParameters );
 
 //static xMutex = xSemaphoreCreateMutex();
@@ -177,7 +179,7 @@ portSHORT main( void )
 	/* Create the tasks defined within this file. */
 	xTaskCreate( mytask1, ( const portCHAR * ) "Task1", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
 	xTaskCreate( mytask2, ( const portCHAR * ) "Task2", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
-	xTaskCreate( mytask3, ( const portCHAR * ) "Task3", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
+	//xTaskCreate( mytask3, ( const portCHAR * ) "Task3", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
 	xTaskCreate( mytask4, ( const portCHAR * ) "Task4", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY + 1 , NULL );
 	
 	sei();
@@ -199,7 +201,7 @@ void derecha(){
 	vTaskDelay(blinkTime1);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
-	vTaskDelay(blinkTime5);
+	vTaskDelay(blinkTime3);
 }
 
 
@@ -209,7 +211,7 @@ void izquierda(){
 	vTaskDelay(blinkTime1);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
-	vTaskDelay(blinkTime5);
+	vTaskDelay(blinkTime3);
 }
 
 void adelante(){
@@ -235,7 +237,7 @@ static void mytask1( void *pvParameters )
 {
 	for( ;; )
 	{
-		char num[10];
+		char num[6];
 		int x = readI2c (104, 0x3b);//READ X accelerometer (in16_t)
 		itoa(x, num, 10);
 		char str[10] ="AcX = ";
@@ -272,9 +274,16 @@ static void mytask1( void *pvParameters )
 		strcpy(str, " | GyZ = ");
 		USART_putstring(str);
 		USART_putstring(num);
-		strcpy(str, " \n");
+		
+		//distancia hc-sr04
+		sm = hc_sr04_meas();
+		itoa(sm, num, 10);
+		strcpy(str, "&");
+		strcat(str, num);
+		strcat(str, "& \n");
 		USART_putstring(str);
-		vTaskDelay(blinkTime100);
+		
+		vTaskDelay(blinkTime200);
 	}
 }
 
@@ -286,31 +295,33 @@ static void mytask2( void *pvParameters )
 	}
 }
 
-static void mytask3( void *pvParameters ) 
+/*static void mytask3( void *pvParameters ) 
 {
 	for( ;; )
 	{
 	   sm = hc_sr04_meas();
-	   char str2[10];
-	   itoa(sm, str2, 10);
+	   char str1[10];
+	   char str2[10] = "&";
+	   itoa(sm, str1, 10);
+	   strcat(str2, str1);
+	   strcat(str2, "&");
 	   USART_putstring(str2);
-	   USART_putstring("\n");
 	   vTaskDelay(blinkTime300);		
 	}
-}
+}*/
 
 
 static void mytask4( void *pvParameters ) 
 {
 	for( ;; )
 	{
+		vTaskDelay(blinkTime300);
 	    if(sm < 10 ){
 			PORTB = 0b00011000; //atras derecha
 			PORTD = 0b01100000; //adelante izquierda
 			_delay_ms(900);
 			gz = 0;
 		}
-		vTaskDelay(blinkTime300);		
 	}
 }
 
