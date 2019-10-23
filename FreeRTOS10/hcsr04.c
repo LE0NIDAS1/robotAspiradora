@@ -33,7 +33,6 @@ unsigned char hc_sr04_meas( void )
 	
 	hc_sr04_cnt = 0;
 	
-	// transmit at least 10 us trigger pulse to the HC-SR04 Trig Pin.
 	PORTD |=  (1 << 3);
 	_delay_us( 10 );
 	PORTD &= ~(1 << 3);
