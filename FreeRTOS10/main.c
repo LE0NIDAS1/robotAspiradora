@@ -121,6 +121,7 @@ tasks just use the idle priority. */
 #define blinkTime1			( ( TickType_t ) 1 / portTICK_PERIOD_MS )
 #define blinkTime3			( ( TickType_t ) 3 / portTICK_PERIOD_MS )
 #define blinkTime5			( ( TickType_t ) 5 / portTICK_PERIOD_MS )
+#define blinkTime20			( ( TickType_t ) 20 / portTICK_PERIOD_MS )
 #define blinkTime100			( ( TickType_t ) 100 / portTICK_PERIOD_MS )
 #define blinkTime200			( ( TickType_t ) 200 / portTICK_PERIOD_MS )
 #define blinkTime300			( ( TickType_t ) 300 / portTICK_PERIOD_MS )
@@ -201,7 +202,8 @@ void derecha(){
 	vTaskDelay(blinkTime1);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
-	vTaskDelay(blinkTime3);
+	//_delay_us(5);
+	vTaskDelay(blinkTime1);
 }
 
 
@@ -211,79 +213,91 @@ void izquierda(){
 	vTaskDelay(blinkTime1);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
-	vTaskDelay(blinkTime3);
+	vTaskDelay(blinkTime1);
 }
 
 void adelante(){
-	if(gz == 0){
+	if(gz > -3 && gz < 3){
 		PORTB = 0b00010100; //adelante derecha
 		//PORTB = 0b00011000; //atras derecha
 		//PORTD = 0b10100000;  //atras izquierda
 		PORTD = 0b01100000;   //adelante izquierda
 		vTaskDelay(blinkTime1);
+		//_delay_us(5);
 		PORTB = 0b00010000;
 		PORTD = 0b00100000;
+		//_delay_us(5);
 		vTaskDelay(blinkTime1);
-	}else if ( gz < 0){
-		derecha();
-	}else if(gz > 0){
-		izquierda();
-	}
+	}else 
+		if ( gz < 3){
+			derecha();
+		}else if(gz > -3)
+			izquierda();
 }
 
 
-
+long int timeDato = 0;
 static void mytask1( void *pvParameters ) 
 {
 	for( ;; )
 	{
-		char num[6];
-		int x = readI2c (104, 0x3b);//READ X accelerometer (in16_t)
-		itoa(x, num, 10);
-		char str[10] ="AcX = ";
-		USART_putstring(str);
-		USART_putstring(num);
-		x = readI2c (104, 0x3d);//READ Y accelerometer (in16_t)
-		itoa(x, num, 10);
-		strcpy(str, " | AcY = ");
-		USART_putstring(str);
-		USART_putstring(num);
-		x = readI2c (104, 0x3f);//READ Z accelerometer (in16_t)
-		itoa(x, num, 10);
-		strcpy(str, " | AcZ = ");
-		USART_putstring(str);
-		USART_putstring(num);
-// 		x = readI2c (104, 0x41);//READ temperature (in16_t)
+		int x;
+ 		char num[6];
+// 		int x = readI2c (104, 0x3b);//READ X accelerometer (in16_t)
 // 		itoa(x, num, 10);
-// 		strcpy(str, " | Tmp = ");
+ 		char str[10] ="AcX = ";
 // 		USART_putstring(str);
 // 		USART_putstring(num);
-		x = readI2c (104, 0x43);//READ X gyroscope (in16_t)43
-		itoa(x, num, 10);
-		strcpy(str, " | GyX = ");
-		USART_putstring(str);
-		USART_putstring(num);
-		x = readI2c (104, 0x45);//READ Y gyroscope (in16_t)45
-		itoa(x, num, 10);
-		strcpy(str, " | GyY = ");
-		USART_putstring(str);
-		USART_putstring(num);
+// 		x = readI2c (104, 0x3d);//READ Y accelerometer (in16_t)
+// 		itoa(x, num, 10);
+// 		strcpy(str, " | AcY = ");
+// 		USART_putstring(str);
+// 		USART_putstring(num);
+// 		x = readI2c (104, 0x3f);//READ Z accelerometer (in16_t)
+// 		itoa(x, num, 10);
+// 		strcpy(str, " | AcZ = ");
+// 		USART_putstring(str);
+// 		USART_putstring(num);
+// // 		x = readI2c (104, 0x41);//READ temperature (in16_t)
+// // 		itoa(x, num, 10);
+// // 		strcpy(str, " | Tmp = ");
+// // 		USART_putstring(str);
+// // 		USART_putstring(num);
+// 		x = readI2c (104, 0x43);//READ X gyroscope (in16_t)43
+// 		itoa(x, num, 10);
+// 		strcpy(str, " | GyX = ");
+// 		USART_putstring(str);
+// 		USART_putstring(num);
+// 		x = readI2c (104, 0x45);//READ Y gyroscope (in16_t)45
+// 		itoa(x, num, 10);
+// 		strcpy(str, " | GyY = ");
+// 		USART_putstring(str);
+// 		USART_putstring(num);
 		x = readI2c (104, 0x47);//READ Z gyroscope (in16_t)47
-		gz += round(x/100);
+		gz += round(x/140);
 		itoa(gz, num, 10);
 		strcpy(str, " | GyZ = ");
-		USART_putstring(str);
-		USART_putstring(num);
+		if(timeDato >= 20){
+			USART_putstring(str);
+			USART_putstring(num);	
+		}
+		vTaskDelay(blinkTime5);
 		
-		//distancia hc-sr04
+		
+// 		distancia hc-sr04
 		sm = hc_sr04_meas();
 		itoa(sm, num, 10);
 		strcpy(str, "&");
 		strcat(str, num);
-		strcat(str, "& \n");
-		USART_putstring(str);
+		strcat(str, "& \n");
+		if(timeDato >= 20){
+			USART_putstring(str);
+			timeDato = 0;
+		}
 		
-		vTaskDelay(blinkTime200);
+		timeDato++;
+		
+		//vTaskDelay(blinkTime200);
 	}
 }
 
@@ -316,11 +330,13 @@ static void mytask4( void *pvParameters )
 	for( ;; )
 	{
 		vTaskDelay(blinkTime300);
-	    if(sm < 10 ){
+	    if(sm < 20 ){
+			taskENTER_CRITICAL();
 			PORTB = 0b00011000; //atras derecha
 			PORTD = 0b01100000; //adelante izquierda
 			_delay_ms(900);
 			gz = 0;
+			taskEXIT_CRITICAL();
 		}
 	}
 }
