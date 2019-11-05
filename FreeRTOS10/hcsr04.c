@@ -9,7 +9,7 @@
 void Port_Init()
 {
 	
-	DDRD |= 0b00001000; //	Set all pins of the PORTD as output, PORTD3 as input.
+	DDRD |= 0b00011000; //	Set all pins of the PORTD as output, PORTD3 as input.
 	PORTD = 0b00000000; // Set all pins of PORTD low which turns it off.
 	
 	EIMSK |= (1<<INT0); //enable external interrupt

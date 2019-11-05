@@ -8,6 +8,10 @@
 #include "usart.h"
 #include <avr/io.h>	
 
+#define RX_BUFF         10
+
+volatile char Rec_Buffer[16];
+
 void USART_init(void){
 	
 	UBRR0H = (uint8_t)(BAUD_PRESCALLER>>8);
@@ -22,12 +26,10 @@ void USART_init(void){
 	
 }
 
-unsigned char USART_receive(void){
-	
-	while(!(UCSR0A & (1<<RXC0)))
-	;
-
-	return UDR0;
+unsigned char USART_Receive (void)
+{
+        while((!(UCSR0A)) & (1<<RXC0));                     // wait while data is being received
+        return UDR0;                                      // return 8-bit data
 }
 
 void USART_send( unsigned char data){
@@ -36,6 +38,14 @@ void USART_send( unsigned char data){
 	;
 
 	UDR0 = data;
+}
+
+unsigned char recibe_caracter_usart(){
+	if(UCSR0A&(1<<7)){  //si el bit7 del registro UCSR0A se ha puesto a 1
+		return UDR0;    //devuelve el dato almacenado en el registro UDR0
+	}
+	else//sino
+	return 0 ;//retorna 0
 }
 
 void putByte(unsigned char data)
@@ -52,4 +62,25 @@ void USART_putstring(char* StringPtr){
 		USART_send(*StringPtr);
 		StringPtr++;
 	}
+}
+
+uint8_t getByte(void)
+{
+	// Check to see if something was received
+	while (!(UCSR0A & _BV(RXC0)));
+	return (uint8_t) UDR0;
+}
+
+char* readString(void)
+{
+	static char rxstr[RX_BUFF];
+	static char* temp;
+	temp = rxstr;
+
+	while((*temp = getByte()) != '\n')
+	{
+		++temp;
+	}
+
+	return rxstr;
 }

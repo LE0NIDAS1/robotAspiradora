@@ -119,7 +119,9 @@ tasks just use the idle priority. */
 
 /* The period between executions of the check task. */
 #define blinkTime1			( ( TickType_t ) 1 / portTICK_PERIOD_MS )
+#define blinkTime2			( ( TickType_t ) 2 / portTICK_PERIOD_MS )
 #define blinkTime3			( ( TickType_t ) 3 / portTICK_PERIOD_MS )
+#define blinkTime4			( ( TickType_t ) 4 / portTICK_PERIOD_MS )
 #define blinkTime5			( ( TickType_t ) 5 / portTICK_PERIOD_MS )
 #define blinkTime20			( ( TickType_t ) 20 / portTICK_PERIOD_MS )
 #define blinkTime100			( ( TickType_t ) 100 / portTICK_PERIOD_MS )
@@ -134,7 +136,7 @@ static void mytask2( void *pvParameters );
 //static void mytask3( void *pvParameters );
 static void mytask4( void *pvParameters );
 
-//static xMutex = xSemaphoreCreateMutex();
+//static xMutex = xSemaphoreCreateMutex();void comando(unsigned char comando);
 
 
 //IPC
@@ -153,36 +155,48 @@ static void mytask4( void *pvParameters );
 
 //SemaphoreHandle_t xSerialSemaphore;
 
+TaskHandle_t task2_handle;
+TaskHandle_t task4_handle;
 
 static long int gz = 0;
 unsigned char sm;
+unsigned char dato;
+
+char automatico = 0;
+char aspiradora = 0;
+
 
 portSHORT main( void )
 {
-	
 // 	if ( xSerialSemaphore == NULL )  // Check to confirm that the Serial Semaphore has not already been created.
 // 	{
 // 		xSerialSemaphore = xSemaphoreCreateMutex();  // Create a mutex semaphore we will use to manage the Serial Port
 // 		if ( ( xSerialSemaphore ) != NULL )
 // 		xSemaphoreGive( ( xSerialSemaphore ) );  // Make the Serial Port available for use, by "Giving" the Semaphore.
 // 	}
+	DDRC = (1 << PORTC2);
+	
 	
 	//DDRB = (1<<PORTB5) | (1<<PORTB6);   //PINB5 y 6 salidas
 	Port_Init();
 	USART_init();
 	startI2c();
 	
+	PORTB = 0b00000000;
+	PORTD = 0b00000000;
+	
 	writeI2c (0x68, 0x19, 0b00000111);//prescaler
 	writeI2c (0x68, 0x1b, 0b00011000);//2000 degrés/s gyro
 	//writeI2c (0x68, 0x23, 0b00000000);//fifo???
 	writeI2c (0x68, 0x6b, 0b00000001);//x axis reference
-	
+		
 	/* Create the tasks defined within this file. */
 	xTaskCreate( mytask1, ( const portCHAR * ) "Task1", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
-	xTaskCreate( mytask2, ( const portCHAR * ) "Task2", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
+	xTaskCreate( mytask2, ( const portCHAR * ) "Task2", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, &task2_handle );
 	//xTaskCreate( mytask3, ( const portCHAR * ) "Task3", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY, NULL );
 	xTaskCreate( mytask4, ( const portCHAR * ) "Task4", configMINIMAL_STACK_SIZE, NULL, mainMY_TASK_PRIORITY + 1 , NULL );
-	
+	vTaskSuspend(task2_handle);
+	vTaskSuspend(task4_handle);
 	sei();
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION 
 	as 1 in portmacro.h.  To use the cooperative scheduler define 
@@ -197,41 +211,48 @@ portSHORT main( void )
 /*-----------------------------------------------------------*/
 
 void derecha(){
+	taskENTER_CRITICAL();
 	PORTB = 0b00011000; //atras derecha
 	PORTD = 0b01100000; //adelante izquierda
-	vTaskDelay(blinkTime1);
+	//vTaskDelay(blinkTime1);
+	_delay_us(400);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
-	//_delay_us(5);
+	//_delay_us(6);
+	taskEXIT_CRITICAL();
 	vTaskDelay(blinkTime1);
 }
 
 
 void izquierda(){
+	taskENTER_CRITICAL();
 	PORTB = 0b00010100;
 	PORTD = 0b10100000;
-	vTaskDelay(blinkTime1);
+	//vTaskDelay(blinkTime1);
+	_delay_us(400);
 	PORTB = 0b00010000;
 	PORTD = 0b00100000;
+	//_delay_us(6);
+	taskEXIT_CRITICAL();
 	vTaskDelay(blinkTime1);
 }
 
 void adelante(){
-	if(gz > -3 && gz < 3){
+	if(gz >= -1 && gz <= 1){
+		PORTB = 0b00010000;
+		PORTD = 0b00100000;
+		_delay_us(5);
+		//vTaskDelay(blinkTime1);
 		PORTB = 0b00010100; //adelante derecha
 		//PORTB = 0b00011000; //atras derecha
 		//PORTD = 0b10100000;  //atras izquierda
 		PORTD = 0b01100000;   //adelante izquierda
-		vTaskDelay(blinkTime1);
-		//_delay_us(5);
-		PORTB = 0b00010000;
-		PORTD = 0b00100000;
-		//_delay_us(5);
-		vTaskDelay(blinkTime1);
+		//vTaskDelay(blinkTime1);
+		_delay_us(5);
 	}else 
-		if ( gz < 3){
+		if ( gz < -1){
 			derecha();
-		}else if(gz > -3)
+		}else if(gz > 1)
 			izquierda();
 }
 
@@ -273,30 +294,31 @@ static void mytask1( void *pvParameters )
 // 		strcpy(str, " | GyY = ");
 // 		USART_putstring(str);
 // 		USART_putstring(num);
+		
 		x = readI2c (104, 0x47);//READ Z gyroscope (in16_t)47
-		gz += round(x/140);
+		gz += trunc(x/160);
 		itoa(gz, num, 10);
 		strcpy(str, " | GyZ = ");
 		if(timeDato >= 20){
 			USART_putstring(str);
 			USART_putstring(num);	
-		}
-		vTaskDelay(blinkTime5);
-		
+		}		
 		
 // 		distancia hc-sr04
 		sm = hc_sr04_meas();
 		itoa(sm, num, 10);
 		strcpy(str, "&");
 		strcat(str, num);
-		strcat(str, "& \n");
+		strcat(str, "(");
 		if(timeDato >= 20){
 			USART_putstring(str);
 			timeDato = 0;
 		}
-		
+		dato = recibe_caracter_usart();
+		comando(dato);
+		vTaskDelay(blinkTime1);
 		timeDato++;
-		
+		//vTaskSuspend(xHandle1);
 		//vTaskDelay(blinkTime200);
 	}
 }
@@ -329,12 +351,15 @@ static void mytask4( void *pvParameters )
 {
 	for( ;; )
 	{
-		vTaskDelay(blinkTime300);
+ 		vTaskDelay(blinkTime300);
 	    if(sm < 20 ){
 			taskENTER_CRITICAL();
-			PORTB = 0b00011000; //atras derecha
-			PORTD = 0b01100000; //adelante izquierda
-			_delay_ms(900);
+			while(gz < 57000){
+				PORTB = 0b00011000; //atras derecha
+				PORTD = 0b01100000; //adelante izquierda
+				int x = readI2c (104, 0x47);//READ Z gyroscope (in16_t)47
+				gz += round(x/140);
+			}
 			gz = 0;
 			taskEXIT_CRITICAL();
 		}
@@ -351,3 +376,57 @@ void vApplicationIdleHook( void )
 }
 #endif
 */
+
+void comando(unsigned char comando){
+	switch(comando){
+		case '1':
+			PORTB = 0b00010100;
+			PORTD |= 0b01100000;
+			_delay_ms(50);
+			PORTB = 0b00010000;
+			PORTD &= 0b00110000;
+			break;
+		case '2':
+			PORTB = 0b00011000; 
+			PORTD |= 0b10100000;
+			_delay_ms(50);
+			PORTB = 0b00010000;
+			PORTD &= 0b00110000;
+			break;
+		case '3':
+			PORTB = 0b00010100;
+			PORTD |= 0b10100000;
+			_delay_ms(50);
+			PORTB = 0b00010000;
+			PORTD &= 0b00110000;
+			break;
+		case '4':
+			PORTB = 0b00011000; //atras derecha
+			PORTD |= 0b01100000; //adelante izquierda
+			_delay_ms(50);
+			PORTB = 0b00010000;
+			PORTD &= 0b00110000;
+			break;
+		case '8'://auto
+			if (!automatico){
+				vTaskResume(task2_handle);
+				vTaskResume(task4_handle);
+				automatico = 1;
+			}
+			else{
+				vTaskSuspend(task2_handle);
+				vTaskResume(task4_handle);
+				automatico = 0;
+			}
+			break;
+		case '9'://aspiradora
+			if(!aspiradora){
+				PORTD |= 0b00010000;
+				aspiradora = 1;
+			}else{
+				PORTD &= ~(0b00010000);
+				aspiradora = 0;
+			}
+			break;
+	}
+}
